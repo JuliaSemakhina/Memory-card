@@ -1,115 +1,152 @@
-const draggable_list = document.getElementById('draggable-list');
-const check = document.getElementById('check');
+const cardsContainer = document.getElementById('cards-container');
+const prevBtn = document.getElementById('prev');
+const nextBtn = document.getElementById('next');
+const currentEl = document.getElementById('current');
+const showBtn = document.getElementById('show');
+const hideBtn = document.getElementById('hide');
+const questionEl = document.getElementById('question');
+const answerEl = document.getElementById('answer');
+const addCardBtn = document.getElementById('add-card');
+const clearBtn = document.getElementById('clear');
+const addContainer = document.getElementById('add-container');
 
-const largestCountry = [
-	'Russia',
-	'Canada',
-	'United States',
-	'China',
-	'Brazil',
-	'Australia',
-	'India',
-	'Argentina',
-	'Kazakhstan',
-	'Algeria'
-];
+//Keep track of current cards
+let currentActiveCard = 0;
 
-//Store List Items
-const listItems = [];
+//Store the DOM cards
+const cardsEl = [];
 
-let dragStartIndex;
+//Store card data
+const cardsData = getCardsData();
 
-createList();
+// const cardsData = [{
+//         question: 'What is the main answer to life and existance?',
+//         answer: 'Forty two'
+//     },
+//     {
+//         question: 'What is a variable?',
+//         answer: 'Container for a piece of data'
+//     },
+//     {
+//         question: 'Example of Case Sensative Variable?',
+//         answer: 'thisIsAVariable'
+//     }
+// ];
 
-//Insert list items into DOM
+//Create cards
+function createCards() {
+    cardsData.forEach((data, index) => createCard(data, index));
+};
 
-function createList() {
-	[...largestCountry]
-	.map(a => ({ value: a, sort: Math.random()}))
-	.sort((a,b)=> a.sort - b.sort)
-	.map(a=> a.value)
-	.forEach((country, index)=> {
-		console.log(country);
+//Create a single card in DOM
+function createCard(data, index) {
+    const card = document.createElement('div');
+    card.classList.add('card');
+    if (index === 0) {
+        card.classList.add('active');
+    }
 
-		const listItem= document.createElement('li');
+    card.innerHTML = `   
+	<div class="inner-card">
+                <div class="inner-card-front">
+                    <p>
+                        ${data.question}
+                    </p>
+                </div>
+                <div class="inner-card-back">
+                    <p>
+                        ${data.answer}
+                    </p>
+                </div>
+    </div>
+	`;
 
-		listItem.setAttribute('data-index', index);
+    card.addEventListener('click', () => card.classList.toggle('show-answer'));
 
-		listItem.innerHTML = `   
-			<span class="number">${index + 1}</span>
-			<div class="draggable" draggable="true">
-			<p class="country-name">${country}</p>
-			<i class='fas fa-grip-lines'></i>
-			</div>
-		`;
-		listItems.push(listItem);
-		draggable_list.appendChild(listItem);
-	});
+    //Add to DOM cards
+    cardsEl.push(card);
 
-	addeventListeners();
+    //Add card to array
+    cardsContainer.appendChild(card);
+
+    updateCurrentText();
 }
 
-function dragStart(){
-	dragStartIndex = +this.closest('li').getAttribute('data-index');
+//Show number of cards
+function updateCurrentText() {
+    currentEl.innerText = `${currentActiveCard + 1}/${cardsEl.length}`;
+};
+
+//Get cards from local storage
+function getCardsData() {
+    const cards = JSON.parse(localStorage.getItem('cards'));
+    return cards === null ? [] : cards;
 }
 
-function dragEnter(){
-	this.classList.add('over');
+//Add card to local storage
+function setCardsData(cards) {
+    localStorage.setItem('cards', JSON.stringify(cards));
+    window.location.reload();
 }
 
-function dragOver(e){
-	e.preventDefault();
-}
+createCards();
 
-function dragLeave(){
-	this.classList.remove('over');
-}
+//Event listeners
+//Next button
+nextBtn.addEventListener('click', () => {
+    cardsEl[currentActiveCard].className = 'card left';
 
-function dragDrop(){
-	const dragEndIndex = +this.getAttribute('data-index');
-	swapItems(dragStartIndex, dragEndIndex);
-	this.classList.remove('over');
-	console.log(dragEndIndex);
-}
+    currentActiveCard = currentActiveCard + 1;
 
+    if (currentActiveCard > cardsEl.length - 1) {
+        currentActiveCard = cardsEl.length - 1;
+    }
 
-//Swap list items
-function swapItems(fromIndex, toIndex){
-	const itemOne = listItems[fromIndex].querySelector('.draggable');
-	const itemTwo = listItems[toIndex].querySelector('.draggable');
-	listItems[fromIndex].appendChild(itemTwo);
-	listItems[toIndex].appendChild(itemOne);
-}
-
-
-//Check the order of the list items on button click
-function checkOrder() {
-	listItems.forEach((listItem,index)=> {
-		const countryName = listItem.querySelector('.draggable').innerText.trim();
-		if(countryName !== largestCountry[index]){
-			listItem.classList.add('wrong');
-		} else {
-			listItem.classList.remove('wrong');
-			listItem.classList.add('right');
-		}
-	})
-}
-
-
-function addeventListeners(){
-	const draggables = document.querySelectorAll('.draggable');
-	const dragListItems = document.querySelectorAll('.draggable-list li');
-
-	draggables.forEach(draggable=> {
-		draggable.addEventListener('dragstart', dragStart)
-		});
-
-	dragListItems.forEach(item=> {
-		item.addEventListener('dragover', dragOver)
-		item.addEventListener('drop', dragDrop)
-		item.addEventListener('dragenter', dragEnter)
-		item.addEventListener('dragleave', dragLeave);
+    cardsEl[currentActiveCard].className = 'card active';
+    updateCurrentText();
 });
-}
 
-check.addEventListener('click', checkOrder);
+//Previous button
+prevBtn.addEventListener('click', () => {
+    cardsEl[currentActiveCard].className = 'card right';
+
+    currentActiveCard = currentActiveCard - 1;
+
+    if (currentActiveCard < 0) {
+        currentActiveCard = 0;
+    }
+
+    cardsEl[currentActiveCard].className = 'card active';
+    updateCurrentText();
+});
+
+//Show add container
+showBtn.addEventListener('click', () => addContainer.classList.add('show'));
+//Hide add container
+hideBtn.addEventListener('click', () => addContainer.classList.remove('show'));
+
+//Add new card
+addCardBtn.addEventListener('click', () => {
+    const question = questionEl.value;
+    const answer = answerEl.value;
+    if (question.trim() && answer.trim()) {
+        const newCard = { question, answer };
+
+        createCard(newCard);
+
+        questionEl.value = '';
+        answerEl.value = '';
+
+        addContainer.classList.remove('show');
+
+        cardsData.push(newCard);
+        setCardsData(cardsData);
+    }
+});
+
+//Clear cards button
+clearBtn.addEventListener('click', () => {
+    localStorage.clear();
+    cardsContainer.innerHTML = '';
+    window.location.reload();
+});
